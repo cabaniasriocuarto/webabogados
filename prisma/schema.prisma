@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ABOGADO
+}
+
+enum AppointmentStatus {
+  PENDIENTE
+  CONFIRMADO
+  REALIZADO
+  CANCELADO
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(ABOGADO)
+  lawyer       LawyerProfile?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model LawyerProfile {
+  id            String              @id @default(cuid())
+  userId        String              @unique
+  photoUrl      String?
+  bio           String?
+  whatsapp      String?
+  user          User                @relation(fields: [userId], references: [id])
+  specialties   LawyerSpecialty[]
+  appointments  AppointmentLawyer[]
+}
+
+model Specialty {
+  id           String             @id @default(cuid())
+  name         String
+  slug         String             @unique
+  isActive     Boolean            @default(true)
+  lawyers      LawyerSpecialty[]
+  appointments Appointment[]
+}
+
+model Appointment {
+  id             String             @id @default(cuid())
+  clientName     String
+  clientEmail    String
+  clientPhone    String
+  clientMessage  String?
+  specialtyId    String
+  specialty      Specialty          @relation(fields: [specialtyId], references: [id])
+  startAt        DateTime
+  endAt          DateTime
+  status         AppointmentStatus  @default(PENDIENTE)
+  roomName       String
+  roomUrl        String
+  roomSlug       String             @unique
+  dailyTokenId   String?
+  codeHash       String
+  failedAttempts Int                @default(0)
+  usedAt         DateTime?
+  ipAddress      String?
+  userAgent      String?
+  lawyers        AppointmentLawyer[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model LawyerSpecialty {
+  lawyerId    String
+  specialtyId String
+  lawyer      LawyerProfile @relation(fields: [lawyerId], references: [id])
+  specialty   Specialty     @relation(fields: [specialtyId], references: [id])
+
+  @@id([lawyerId, specialtyId])
+}
+
+model AppointmentLawyer {
+  appointmentId String
+  lawyerId      String
+  appointment   Appointment  @relation(fields: [appointmentId], references: [id])
+  lawyer        LawyerProfile @relation(fields: [lawyerId], references: [id])
+
+  @@id([appointmentId, lawyerId])
+}
